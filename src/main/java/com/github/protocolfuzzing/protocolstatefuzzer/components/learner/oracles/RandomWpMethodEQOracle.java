@@ -119,6 +119,7 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
     public <S> @Nullable DefaultQuery<I, Word<O>> doFindCounterExample(MealyMachine<S, I, ?, O> hypothesis,
         Collection<? extends I> inputs) {
         WpEQSequenceGenerator<I, Word<O>, S> generator = new WpEQSequenceGenerator<>(hypothesis, inputs);
+        Random random = new Random(seed);
 
         List<S> states = new ArrayList<>(hypothesis.getStates());
         int remainingTasks = bound;
@@ -126,8 +127,6 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
         // 创建线程池和CompletionService
         int numThreads = 4;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        CompletionService<DefaultQuery<I, Word<O>>> completionService =
-                new ExecutorCompletionService<>(executor);
 
         System.out.println("[DEBUG] 开始并行执行测试 - 线程数: " + numThreads + ", 总任务数: " + bound);
         Instant startTime = Instant.now();
@@ -148,41 +147,42 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
                         batchCounter, currentBatchSize, totalProcessed, remainingTasks
                 ));
                 Instant batchStartTime = Instant.now();
-
-                int submittedTasks = 0;
-                // 提交一批任务
+                List<DefaultQuery<I, Word<O>>> queries = new ArrayList<>(currentBatchSize);
                 for (int i = 0; i < currentBatchSize; i++) {
-                    final int threadID = i;
-                    final int taskIndex = bound - remainingTasks + i;
-                    final Random taskRand = new Random(seed + taskIndex);
+                    WordBuilder<I> wb = new WordBuilder<>(minimalSize + rndLength + 1);
+                    S randState = states.get(random.nextInt(states.size()));
+                    wb.append(generator.getRandomAccessSequence(randState, random));
+                    wb.append(generator.getRandomMiddleSequence(minimalSize, rndLength, random));
+                    wb.append(generator.getRandomCharacterizingSequence(wb, random));
 
-                    completionService.submit(() -> {
-                        // 任务逻辑
-                        WordBuilder<I> wb = new WordBuilder<>(minimalSize + rndLength + 1);
-                        S randState = states.get(taskRand.nextInt(states.size()));
-                        wb.append(generator.getRandomAccessSequence(randState, taskRand));
-                        wb.append(generator.getRandomMiddleSequence(minimalSize, rndLength, taskRand));
-                        wb.append(generator.getRandomCharacterizingSequence(wb, taskRand));
+                    Word<I> queryWord = wb.toWord();
+                    DefaultQuery<I, Word<O>> query = new DefaultQuery<>(queryWord);
+                    queries.add(query);
+                }
+                // 提交一批任务
+                List<Future<DefaultQuery<I, Word<O>>>> futures = new ArrayList<>(currentBatchSize);
+                for (int i = 0; i < currentBatchSize; i++) {
+                    final DefaultQuery<I, Word<O>> query = queries.get(i);
+                    final int oracleIndex = i % sulOracles.size();
+                    futures.add(executor.submit(() -> {
+                        try {
+                            sulOracles.get(oracleIndex).processQueries(Collections.singleton(query));
+                            Word<O> hypOutput = hypothesis.computeOutput(query.getInput());
 
-                        Word<I> queryWord = wb.toWord();
-                        Word<O> hypOutput = hypothesis.computeOutput(queryWord);
-                        DefaultQuery<I, Word<O>> query = new DefaultQuery<>(queryWord);
-
-                        sulOracles.get(threadID).processQueries(Collections.singleton(query));
-
-                        if (!Objects.equals(hypOutput, query.getOutput())) {
-                            return query;  // 找到反例
+                            if (!Objects.equals(hypOutput, query.getOutput())) {
+                                return query;  // 找到反例
+                            }
+                        } catch (Exception e) {
+                            System.err.println("[ERROR] 处理查询时发生异常: " + e.getMessage());
                         }
                         return null;  // 没找到反例
-                    });
-                    submittedTasks++;
+                    }));
                 }
                 // 处理本批次的结果
                 boolean foundCounterExample = false;
                 DefaultQuery<I, Word<O>> counterExample = null;
-                for (int i = 0; i < submittedTasks; i++) {
+                for (Future<DefaultQuery<I, Word<O>>> future : futures) {
                     try {
-                        Future<DefaultQuery<I, Word<O>>> future = completionService.take();
                         DefaultQuery<I, Word<O>> result = future.get();
                         if (result != null) {
                             foundCounterExample = true;
@@ -194,8 +194,8 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
                         e.printStackTrace();
                     }
                 }
-                remainingTasks -= submittedTasks;
-                totalProcessed += submittedTasks;
+                remainingTasks -= currentBatchSize;
+                totalProcessed += currentBatchSize;
 
                 // 批次结束后的调试信息
                 Instant batchEndTime = Instant.now();
