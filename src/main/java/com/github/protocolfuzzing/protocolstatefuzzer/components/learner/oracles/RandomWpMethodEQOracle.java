@@ -78,7 +78,7 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
     /**
      * Constructs a new instance from the given parameters, which represents a bounded testing oracle.
      *
-     * @param sulOracle    the oracle which answers tests
+     * @param sulOracles    the oracle which answers tests
      * @param minimalSize  the minimal size of the random word
      * @param rndLength    the expected length (in addition to minimalSize) of random word
      * @param bound        the bound (set to 0 for unbounded).

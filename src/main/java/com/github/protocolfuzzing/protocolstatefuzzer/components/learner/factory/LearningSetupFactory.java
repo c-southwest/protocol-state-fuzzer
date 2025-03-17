@@ -77,8 +77,8 @@ public class LearningSetupFactory {
      * Create a new Equivalence Oracle from the given parameters.
      *
      * @param config    the learner configuration to be used
-     * @param sul       the sul that is contained inside the sulOracle
-     * @param sulOracle the sul oracle to be used that contains the sul
+     * @param suls       the sul that is contained inside the sulOracle
+     * @param sulOracles the sul oracle to be used that contains the sul
      * @param alphabet  the alphabet to be used
      * @return          the created Equivalence Oracle
      */
@@ -113,8 +113,8 @@ public class LearningSetupFactory {
      *
      * @param algorithm  the Equivalence algorithm name
      * @param config     the learner configuration to be used
-     * @param sul        the sul that is contained inside the sulOracle
-     * @param sulOracle  the sul oracle to be used that contains the sul
+     * @param suls        the sul that is contained inside the sulOracle
+     * @param sulOracles  the sul oracle to be used that contains the sul
      * @param alphabet   the alphabet to be used
      * @return           the created Equivalence Oracle
      */

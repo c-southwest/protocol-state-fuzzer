@@ -115,6 +115,12 @@ public interface SulConfig extends RunDescriptionPrinter {
      */
     void setStartWait(Long startWait);
 
+    /**
+     * Sets the time (ms) waited after executing the command to start the SUL process.
+     *
+     * @param threadId  id
+     * @return SulConfig
+     */
     SulConfig cloneWithThreadId(int threadId);
 
 }
