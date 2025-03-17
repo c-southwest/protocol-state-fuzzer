@@ -8,7 +8,6 @@ import com.github.protocolfuzzing.protocolstatefuzzer.components.learner.statist
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.core.AbstractSul;
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.core.SulBuilder;
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.core.SulWrapper;
-import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.core.config.SulClientConfig;
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.core.config.SulConfig;
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.mapper.abstractsymbols.AbstractInput;
 import com.github.protocolfuzzing.protocolstatefuzzer.components.sul.mapper.abstractsymbols.AbstractOutput;
