@@ -57,6 +57,10 @@ public abstract class AbstractSul implements SUL<AbstractInput, AbstractOutput> 
         return sulConfig;
     }
 
+    public SulConfig setSulConfig(SulConfig sulConfig) {
+        return this.sulConfig = sulConfig;
+    }
+
     /**
      * Returns the stored value of {@link #cleanupTasks}.
      *

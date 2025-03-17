@@ -84,8 +84,8 @@ public class LearningSetupFactory {
      */
     public static EquivalenceOracle<MealyMachine<?, AbstractInput, ?, AbstractOutput>, AbstractInput, Word<AbstractOutput>> createEquivalenceOracle(
         LearnerConfig config,
-        SUL<AbstractInput, AbstractOutput> sul,
-        MealyMembershipOracle<AbstractInput, AbstractOutput> sulOracle,
+        List<SUL<AbstractInput, AbstractOutput>> suls,
+        List<MealyMembershipOracle<AbstractInput, AbstractOutput>> sulOracles,
         Alphabet<AbstractInput> alphabet) {
 
         if (config.getEquivalenceAlgorithms().isEmpty()) {
@@ -93,13 +93,13 @@ public class LearningSetupFactory {
         }
 
         if (config.getEquivalenceAlgorithms().size() == 1) {
-            return createEquivalenceOracleForAlgorithm(config.getEquivalenceAlgorithms().get(0), config, sul, sulOracle, alphabet);
+            return createEquivalenceOracleForAlgorithm(config.getEquivalenceAlgorithms().get(0), config, suls, sulOracles, alphabet);
         }
 
         List<EquivalenceOracle.MealyEquivalenceOracle<AbstractInput, AbstractOutput>> eqOracles;
 
         eqOracles = config.getEquivalenceAlgorithms().stream()
-                        .map(alg -> createEquivalenceOracleForAlgorithm(alg, config, sul, sulOracle, alphabet))
+                        .map(alg -> createEquivalenceOracleForAlgorithm(alg, config, suls, sulOracles, alphabet))
                         .collect(Collectors.toList());
 
         return new MealyEQOracleChain<>(eqOracles);
@@ -121,33 +121,33 @@ public class LearningSetupFactory {
     protected static EquivalenceOracle.MealyEquivalenceOracle<AbstractInput, AbstractOutput> createEquivalenceOracleForAlgorithm(
         EquivalenceAlgorithmName algorithm,
         LearnerConfig config,
-        SUL<AbstractInput, AbstractOutput> sul,
-        MealyMembershipOracle<AbstractInput, AbstractOutput> sulOracle,
+        List<SUL<AbstractInput, AbstractOutput>> suls,
+        List<MealyMembershipOracle<AbstractInput, AbstractOutput>> sulOracles,
         Alphabet<AbstractInput> alphabet) {
 
         return switch (algorithm) {
             // simplest method, but doesn't perform well for large models
             case RANDOM_WALK ->
-                new RandomWalkEQOracle<>(sul, config.getProbReset(), config.getEquivQueryBound(), true, new Random(config.getSeed()));
+                new RandomWalkEQOracle<>(suls.get(0), config.getProbReset(), config.getEquivQueryBound(), true, new Random(config.getSeed()));
 
             // Smarter methods: state coverage, trying to distinguish states, etc.
             case W_METHOD ->
-                new MealyWMethodEQOracle<>(sulOracle, config.getMaxDepth());
+                new MealyWMethodEQOracle<>(sulOracles.get(0), config.getMaxDepth());
 
             case WP_METHOD ->
-                new MealyWpMethodEQOracle<>(sulOracle, config.getMaxDepth());
+                new MealyWpMethodEQOracle<>(sulOracles.get(0), config.getMaxDepth());
 
             case RANDOM_WP_METHOD ->
                 new RandomWpMethodEQOracle<>(
-                    sulOracle, config.getMinLength(), config.getRandLength(),
+                    sulOracles, config.getMinLength(), config.getRandLength(),
                     config.getEquivQueryBound(), config.getSeed());
 
             case SAMPLED_TESTS ->
-                new SampledTestsEQOracle<>(readTests(config, alphabet), sulOracle);
+                new SampledTestsEQOracle<>(readTests(config, alphabet), sulOracles.get(0));
 
             case WP_SAMPLED_TESTS ->
                 new WpSampledTestsEQOracle<>(
-                    readTests(config, alphabet), sulOracle, config.getMinLength(),
+                    readTests(config, alphabet), sulOracles.get(0), config.getMinLength(),
                     config.getRandLength(), config.getSeed(), config.getEquivQueryBound());
 
             default ->

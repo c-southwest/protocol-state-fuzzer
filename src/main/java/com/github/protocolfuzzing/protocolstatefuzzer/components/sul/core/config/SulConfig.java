@@ -114,4 +114,7 @@ public interface SulConfig extends RunDescriptionPrinter {
      * @param startWait  the start wait value to be set
      */
     void setStartWait(Long startWait);
+
+    SulConfig cloneWithThreadId(int threadId);
+
 }

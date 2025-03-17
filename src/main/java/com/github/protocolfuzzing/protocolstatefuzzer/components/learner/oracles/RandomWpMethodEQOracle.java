@@ -8,7 +8,10 @@ import net.automatalib.word.Word;
 import net.automatalib.word.WordBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Implements an equivalence test by applying the WP-method test on the given
@@ -40,7 +43,7 @@ import java.util.*;
 public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquivalenceOracle<I, O> {
 
     /** Stores the constructor parameter. */
-    protected MealyMembershipOracle<I, O>  sulOracle;
+    protected List<MealyMembershipOracle<I, O>>  sulOracles;
 
     /** Stores the constructor parameter. */
     protected int minimalSize;
@@ -65,7 +68,7 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
     public RandomWpMethodEQOracle(MealyMembershipOracle<I, O> sulOracle,
         int minimalSize, int rndLength, long seed) {
 
-        this.sulOracle = sulOracle;
+        this.sulOracles = Collections.singletonList(sulOracle);
         this.minimalSize = minimalSize;
         this.rndLength = rndLength;
         this.seed = seed;
@@ -81,10 +84,10 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
      * @param bound        the bound (set to 0 for unbounded).
      * @param seed         the seed to be used for randomness
      */
-    public RandomWpMethodEQOracle(MealyMembershipOracle<I, O> sulOracle,
+    public RandomWpMethodEQOracle(List<MealyMembershipOracle<I, O>> sulOracles,
         int minimalSize, int rndLength, int bound, long seed) {
 
-        this.sulOracle = sulOracle;
+        this.sulOracles = sulOracles;
         this.minimalSize = minimalSize;
         this.rndLength = rndLength;
         this.bound = bound;
@@ -119,32 +122,125 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
 
         Random rand = new Random(seed);
         List<S> states = new ArrayList<>(hypothesis.getStates());
-        int currentBound = bound;
+        int remainingTasks = bound;
 
-        while (bound == 0 || currentBound-- > 0) {
-            WordBuilder<I> wb = new WordBuilder<>(minimalSize + rndLength + 1);
+        // 创建线程池和CompletionService
+        int numThreads = 16;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        CompletionService<DefaultQuery<I, Word<O>>> completionService =
+                new ExecutorCompletionService<>(executor);
 
-            // pick a random state
-            wb.append(generator.getRandomAccessSequence(
-                states.get(rand.nextInt(states.size())), rand));
+        System.out.println("[DEBUG] 开始并行执行测试 - 线程数: " + numThreads + ", 总任务数: " + bound);
+        Instant startTime = Instant.now();
+        int batchCounter = 0;
+        int totalProcessed = 0;
 
-            // construct random middle part (of some expected length)
-            wb.append(generator.getRandomMiddleSequence(minimalSize, rndLength, rand));
+        try {
+            int batchSize = numThreads * 1; // 每批任务数量
 
-            // construct a random characterizing/identifying sequence
-            wb.append(generator.getRandomCharacterizingSequence(wb, rand));
+            while (remainingTasks > 0) {
+                batchCounter++;
+                // 确定本批次要执行的任务数
+                int currentBatchSize = Math.min(batchSize, remainingTasks);
 
-            Word<I> queryWord = wb.toWord();
-            Word<O> hypOutput = hypothesis.computeOutput(queryWord);
-            DefaultQuery<I, Word<O>> query = new DefaultQuery<>(queryWord);
+                // 批次开始前的调试信息
+                System.out.println(String.format(
+                        "[DEBUG] 批次 #%d: 提交 %d 个任务 (已处理: %d, 剩余: %d)",
+                        batchCounter, currentBatchSize, totalProcessed, remainingTasks
+                ));
+                Instant batchStartTime = Instant.now();
 
-            sulOracle.processQueries(Collections.singleton(query));
+                int submittedTasks = 0;
+                // 提交一批任务
+                for (int i = 0; i < currentBatchSize; i++) {
+                    final int threadID = i;
+                    final int taskIndex = bound - remainingTasks + i;
+                    final Random taskRand = new Random(seed + taskIndex);
 
-            if (!Objects.equals(hypOutput, query.getOutput())) {
-                return query;
+                    completionService.submit(() -> {
+                        // 任务逻辑
+                        WordBuilder<I> wb = new WordBuilder<>(minimalSize + rndLength + 1);
+                        S randState = states.get(taskRand.nextInt(states.size()));
+                        wb.append(generator.getRandomAccessSequence(randState, taskRand));
+                        wb.append(generator.getRandomMiddleSequence(minimalSize, rndLength, taskRand));
+                        wb.append(generator.getRandomCharacterizingSequence(wb, taskRand));
+
+                        Word<I> queryWord = wb.toWord();
+                        Word<O> hypOutput = hypothesis.computeOutput(queryWord);
+                        DefaultQuery<I, Word<O>> query = new DefaultQuery<>(queryWord);
+
+                        sulOracles.get(threadID).processQueries(Collections.singleton(query));
+
+                        if (!Objects.equals(hypOutput, query.getOutput())) {
+                            return query;  // 找到反例
+                        }
+                        return null;  // 没找到反例
+                    });
+                    submittedTasks++;
+                }
+                // 处理本批次的结果
+                boolean foundCounterExample = false;
+                DefaultQuery<I, Word<O>> counterExample = null;
+                for (int i = 0; i < submittedTasks; i++) {
+                    try {
+                        Future<DefaultQuery<I, Word<O>>> future = completionService.take();
+                        DefaultQuery<I, Word<O>> result = future.get();
+                        if (result != null) {
+                            foundCounterExample = true;
+                            counterExample = result;
+                            break;  // 找到反例，跳出循环
+                        }
+                    } catch (ExecutionException e) {
+                        System.err.println("[ERROR] 任务执行异常: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+                remainingTasks -= submittedTasks;
+                totalProcessed += submittedTasks;
+
+                // 批次结束后的调试信息
+                Instant batchEndTime = Instant.now();
+                Duration batchDuration = Duration.between(batchStartTime, batchEndTime);
+                System.out.println(String.format(
+                        "[DEBUG] 批次 #%d 完成: 耗时 %d 毫秒, %s",
+                        batchCounter,
+                        batchDuration.toMillis(),
+                        foundCounterExample ? "找到反例!" : "未找到反例"
+                ));
+
+                if (foundCounterExample) {
+                    // 如果找到反例，取消剩余任务并返回
+                    System.out.println("[DEBUG] 已找到反例，终止剩余测试");
+                    return counterExample;
+                }
             }
+        } catch (InterruptedException e) {
+            System.err.println("[DEBUG] 测试被中断: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        } finally {
+            // TODO maybe we can terminate immediately
+            // 关闭线程池
+            System.out.println("[DEBUG] 关闭线程池，测试完成");
+//            executor.shutdownNow();
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                    List<Runnable> droppedTasks = executor.shutdownNow();
+                    System.out.println("[DEBUG] 取消了 " + droppedTasks.size() + " 个剩余任务");
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            // 打印总体执行信息
+            Instant endTime = Instant.now();
+            Duration totalDuration = Duration.between(startTime, endTime);
+            System.out.println(String.format(
+                    "[DEBUG] 测试总结: 共处理 %d 个任务, 总耗时 %d 毫秒, 完成了 %.2f%%",
+                    totalProcessed,
+                    totalDuration.toMillis(),
+                    (totalProcessed * 100.0) / bound
+            ));
         }
-
         // no counter example found within the bound
         return null;
     }

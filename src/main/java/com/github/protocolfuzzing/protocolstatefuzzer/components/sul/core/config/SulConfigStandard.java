@@ -272,4 +272,11 @@ public abstract class SulConfigStandard implements SulConfig {
         getMapperConfig().printRunDescription(printWriter);
         getSulAdapterConfig().printRunDescription(printWriter);
     }
+
+    @Override
+    public SulConfig cloneWithThreadId(int threadId) {
+        // 基础类的默认实现可能只是简单复制配置
+        // 子类会覆盖这个方法以提供特定的实现
+        return this; // 或者返回一个基本拷贝
+    }
 }
