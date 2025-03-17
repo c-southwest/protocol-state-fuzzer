@@ -116,7 +116,7 @@ public class StateFuzzerComposerStandard implements StateFuzzerComposer {
         this.suls.add(sul1);
 
         // create more SULs if necessary
-        int numExtraSuls = 15;  // 总共4个实例
+        int numExtraSuls = 3;  // 总共4个实例
         for (int i = 1; i <= numExtraSuls; i++) {
             SulConfig config = stateFuzzerEnabler.getSulConfig().cloneWithThreadId(i);
             AbstractSul threadSul = sulBuilder.build(config, cleanupTasks);

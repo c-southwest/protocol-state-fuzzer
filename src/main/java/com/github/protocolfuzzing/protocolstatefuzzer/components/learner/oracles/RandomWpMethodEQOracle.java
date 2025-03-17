@@ -124,7 +124,7 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
         int remainingTasks = bound;
 
         // 创建线程池和CompletionService
-        int numThreads = 16;
+        int numThreads = 4;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         CompletionService<DefaultQuery<I, Word<O>>> completionService =
                 new ExecutorCompletionService<>(executor);
