@@ -223,7 +223,7 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
 //            executor.shutdownNow();
             executor.shutdown();
             try {
-                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                if (!executor.awaitTermination(600, TimeUnit.SECONDS)) {
                     List<Runnable> droppedTasks = executor.shutdownNow();
                     System.out.println("[DEBUG] 取消了 " + droppedTasks.size() + " 个剩余任务");
                 }
