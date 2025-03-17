@@ -120,7 +120,6 @@ public class RandomWpMethodEQOracle<I,O> implements EquivalenceOracle.MealyEquiv
         Collection<? extends I> inputs) {
         WpEQSequenceGenerator<I, Word<O>, S> generator = new WpEQSequenceGenerator<>(hypothesis, inputs);
 
-        Random rand = new Random(seed);
         List<S> states = new ArrayList<>(hypothesis.getStates());
         int remainingTasks = bound;
 
