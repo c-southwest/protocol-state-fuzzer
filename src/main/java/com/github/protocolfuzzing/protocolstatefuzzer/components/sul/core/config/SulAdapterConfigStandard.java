@@ -45,4 +45,12 @@ public class SulAdapterConfigStandard implements SulAdapterConfig {
         printWriter.println("Adapter Port: " + getAdapterPort());
         printWriter.println("Adapter Address: " + getAdapterAddress());
     }
+
+    public SulAdapterConfigStandard(int adapterPort, String adapterAddress) {
+        this.adapterPort = adapterPort;
+        this.adapterAddress = adapterAddress;
+    }
+
+    public SulAdapterConfigStandard() {   }
+
 }
