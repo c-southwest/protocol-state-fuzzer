@@ -51,6 +51,20 @@ public class ProcessHandler {
     public ProcessHandler(SulConfig sulConfig) {
         this(sulConfig.getCommand(), sulConfig.getStartWait());
 
+        int threadsCount = sulConfig.getThreadCount();
+        int threadId = sulConfig.getThreadId();
+        if(threadId + 1 == threadsCount) {
+            // this is the last one, we should wait, we do nothing, since startWait is configured
+            LOGGER.info(String.format("Thread ID: %d， Total Thread Count: %d, need to wait startWait: %d (ms).", threadId, threadsCount, startWait));
+        }else if(threadId + 1 > threadsCount) {
+            // this should not happen, we add this to detect future strange behavior
+            LOGGER.error("ThreadId " + threadId + " + 1 is greater than threadsCount" + threadsCount);
+        }else{
+            // we are not the last, we should not wait
+            startWait = 0;
+            LOGGER.info(String.format("Thread ID: %d， Total Thread Count: %d, reset startWait to %d.", threadId, threadsCount, startWait));
+        }
+
         if (sulConfig.getProcessDir() != null) {
             setDirectory(new File(sulConfig.getProcessDir()));
             LOGGER.info("Directory of SUL process: {}", sulConfig.getProcessDir());

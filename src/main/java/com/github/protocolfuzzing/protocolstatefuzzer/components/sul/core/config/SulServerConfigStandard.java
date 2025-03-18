@@ -22,6 +22,10 @@ public class SulServerConfigStandard extends SulConfigStandard implements SulSer
         + "address to connect the state fuzzer client. Format: ip:port")
     protected String host = null;
 
+    // multi-thread related
+    protected int threadId = 0;
+    protected int threadsCount = 1;
+
     /**
      * Constructs a new instance from the default super constructor.
      */
@@ -46,6 +50,26 @@ public class SulServerConfigStandard extends SulConfigStandard implements SulSer
      */
     @Override
     public void applyDelegate(MapperConnectionConfig config) {
+    }
+
+    @Override
+    public int getThreadId() {
+        return this.threadId;
+    }
+
+    @Override
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
+    }
+
+    @Override
+    public int getThreadCount() {
+        return this.threadsCount;
+    }
+
+    @Override
+    public void setThreadCount(int threadCount) {
+        this.threadsCount = threadCount;
     }
 
     /**

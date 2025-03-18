@@ -32,6 +32,10 @@ public class SulClientConfigStandard extends SulConfigStandard implements SulCli
         + "of the SUL client on which the state fuzzer server should listen")
     protected Integer port = null;
 
+    // multi-thread related
+    protected int threadId = 0;
+    protected int threadsCount = 1;
+
     /**
      * Constructs a new instance from the default super constructor.
      */
@@ -57,6 +61,26 @@ public class SulClientConfigStandard extends SulConfigStandard implements SulCli
      */
     @Override
     public void applyDelegate(MapperConnectionConfig config) {
+    }
+
+    @Override
+    public int getThreadId() {
+        return this.threadId;
+    }
+
+    @Override
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
+    }
+
+    @Override
+    public int getThreadCount() {
+        return this.threadsCount;
+    }
+
+    @Override
+    public void setThreadCount(int threadCount) {
+        this.threadsCount = threadCount;
     }
 
     /**

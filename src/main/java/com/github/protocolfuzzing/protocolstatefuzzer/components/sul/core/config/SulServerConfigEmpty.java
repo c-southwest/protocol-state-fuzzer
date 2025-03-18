@@ -43,6 +43,26 @@ public class SulServerConfigEmpty extends SulConfigEmpty implements SulServerCon
     public void applyDelegate(MapperConnectionConfig config) {
     }
 
+    @Override
+    public int getThreadId() {
+        return 0;
+    }
+
+    @Override
+    public void setThreadId(int threadId) {
+
+    }
+
+    @Override
+    public int getThreadCount() {
+        return 1;
+    }
+
+    @Override
+    public void setThreadCount(int threadCount) {
+
+    }
+
     /**
      * Returns the stored value of {@link #host}.
      *

@@ -105,8 +105,11 @@ public class StateFuzzerComposerStandard implements StateFuzzerComposer {
         this.cleanupTasks = new CleanupTasks();
 
         this.suls = new ArrayList<>();
+
+        var originalConfig = stateFuzzerEnabler.getSulConfig();
+        originalConfig.setThreadCount(4);
         // set up wrapped SUL (System Under Learning)
-        AbstractSul abstractSul = sulBuilder.build(stateFuzzerEnabler.getSulConfig(), cleanupTasks);
+        AbstractSul abstractSul = sulBuilder.build(originalConfig, cleanupTasks);
         var sul1 = sulWrapper
                 .wrap(abstractSul)
                 .setTimeLimit(learnerConfig.getTimeLimit())

@@ -123,4 +123,32 @@ public interface SulConfig extends RunDescriptionPrinter {
      */
     SulConfig cloneWithThreadId(int threadId);
 
+    /**
+     * Just like the function name.
+     *
+     * @return thread id
+     */
+    int getThreadId();
+
+    /**
+     * Just like the function name.
+     *
+     * @param threadId  id
+     */
+    void setThreadId(int threadId);
+
+    /**
+     * Just like the function name.
+     *
+     * @return the number of threads we are using
+     */
+    int getThreadCount();
+
+    /**
+     * Just like the function name.
+     *
+     * @param threadCount  number of threads
+     */
+    void setThreadCount(int threadCount);
+
 }
