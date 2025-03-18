@@ -132,12 +132,6 @@ public class StateFuzzerComposerStandard implements StateFuzzerComposer {
             this.suls.add(wrappedSul);
         }
 
-        // initialize extra SULs
-        for (int i = 1; i <= numExtraSuls; i++) {
-            suls.get(i).pre();
-            suls.get(i).post();
-        }
-
         // initialize cache as observation tree
         this.cache = new ObservationTree<>();
 
