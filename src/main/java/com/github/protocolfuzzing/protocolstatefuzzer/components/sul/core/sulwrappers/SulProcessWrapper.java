@@ -51,6 +51,10 @@ public class SulProcessWrapper<I, O> implements SUL<I, O> {
         this.handler = handlers.get(sulConfig.getCommand());
         this.trigger = sulConfig.getProcessTrigger();
 
+        if (trigger == ProcessLaunchTrigger.START && sulConfig.getThreadId() != 0) {
+            handler.skipFirstStartWait = true;
+        }
+
         if (trigger == ProcessLaunchTrigger.START && !handler.hasLaunched()) {
             handler.launchProcess();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> handler.terminateProcess()));

@@ -43,6 +43,8 @@ public class ProcessHandler {
      */
     protected boolean hasLaunched;
 
+    protected boolean skipFirstStartWait = false;
+
     /**
      * Constructs a new instance from the given parameter.
      *
@@ -51,10 +53,6 @@ public class ProcessHandler {
     public ProcessHandler(SulConfig sulConfig) {
         this(sulConfig.getCommand(), sulConfig.getStartWait());
 
-        int threadId = sulConfig.getThreadId();
-        if (threadId != 0) {
-            startWait = 0;
-        }
 
         if (sulConfig.getProcessDir() != null) {
             setDirectory(new File(sulConfig.getProcessDir()));
@@ -137,6 +135,11 @@ public class ProcessHandler {
 
             pipe(currentProcess.getInputStream(), output);
             pipe(currentProcess.getErrorStream(), error);
+            if(skipFirstStartWait) {
+                System.out.println("skip first start wait");
+                skipFirstStartWait = false;
+                return;
+            }
 
             if (startWait > 0) {
                 Thread.sleep(startWait);
